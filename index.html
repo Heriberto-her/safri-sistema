@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAFRI SISTEMA PRO</title>
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<title>SAFRI PRO 🔥</title>
+
+<!-- FIREBASE V8 (ESTABLE PARA GITHUB) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -15,13 +14,13 @@
 
 <style>
 body{font-family:Arial;background:#0f172a;color:white;margin:0}
-header{background:#020617;padding:15px;text-align:center;font-size:20px}
-.menu{background:#020617;padding:10px;text-align:center}
-.menu button{margin:5px;padding:10px;border:none;border-radius:8px;background:#22c55e;color:white}
+header{background:#020617;padding:15px;text-align:center}
 .container{padding:20px;max-width:900px;margin:auto}
 .card{background:#1e293b;padding:20px;border-radius:12px;margin-bottom:20px}
 input,select,textarea{width:100%;padding:10px;margin-top:10px;border-radius:8px;border:none}
 button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px;margin-top:10px}
+.menu{background:#020617;padding:10px;text-align:center}
+.menu button{margin:5px}
 </style>
 </head>
 
@@ -30,15 +29,29 @@ button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px
 <header>SAFRI 🔥</header>
 
 <!-- LOGIN -->
-<div class="container" id="login">
+<div class="container" id="loginBox">
 <div class="card">
 <h2>Login</h2>
-<select id="tipo">
-<option value="admin">Socio</option>
-<option value="vendedor">Vendedor</option>
-</select>
-<input id="usuario" placeholder="Nombre">
+<input id="email" placeholder="Correo">
+<input id="password" type="password" placeholder="Contraseña">
 <button onclick="login()">Entrar</button>
+<button onclick="mostrarRegistro()">Crear cuenta</button>
+</div>
+</div>
+
+<!-- REGISTRO -->
+<div class="container" id="registroBox" style="display:none">
+<div class="card">
+<h2>Registro</h2>
+<input id="nombre" placeholder="Nombre">
+<input id="emailR" placeholder="Correo">
+<input id="passR" type="password" placeholder="Contraseña">
+<select id="tipoUser">
+<option value="vendedor">Vendedor</option>
+<option value="admin">Socio</option>
+</select>
+<button onclick="registrar()">Crear cuenta</button>
+<button onclick="volverLogin()">Volver</button>
 </div>
 </div>
 
@@ -47,36 +60,20 @@ button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px
 <button onclick="ver('dashboard')">🏠 Inicio</button>
 <button onclick="ver('scan')">📸 Escanear</button>
 <button onclick="ver('stats')">📊 Stats</button>
-<button onclick="ver('vendedores')" id="btnVendedores">👥 Vendedores</button>
+<button onclick="logout()">Salir</button>
 </div>
 
 <!-- DASHBOARD -->
 <div class="container" id="dashboard" style="display:none">
-<div class="card">
-<h2>Bienvenido</h2>
-<p>Sistema SAFRI funcionando 🔥</p>
-</div>
+<div class="card"><h2>Bienvenido 🔥</h2></div>
 </div>
 
 <!-- ESCANEAR -->
 <div class="container" id="scan" style="display:none">
 <div class="card">
-<h2>Escanear fichas</h2>
-
-<input type="file" id="img">
-
-<select id="vendedor"></select>
-
-<select id="precio">
-<option value="10">$10</option>
-<option value="25">$25</option>
-</select>
-
-<button onclick="scan()">Escanear</button>
-
-<textarea id="pins"></textarea>
-
-<button onclick="guardar()">Registrar</button>
+<h2>Escanear</h2>
+<input id="pins" placeholder="Pega PINs">
+<button onclick="guardar()">Guardar</button>
 </div>
 </div>
 
@@ -88,55 +85,72 @@ button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px
 </div>
 </div>
 
-<!-- VENDEDORES -->
-<div class="container" id="vendedores" style="display:none">
-<div class="card">
-<h2>Vendedores</h2>
-<input id="nuevoVend" placeholder="Nombre">
-<button onclick="agregarVend()">Agregar</button>
-<ul id="listaVend"></ul>
-</div>
-</div>
+<script>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// 🔥 PEGA TU CONFIG AQUÍ
+// 🔥 CONFIG (TUYA)
 const firebaseConfig = {
-  apiKey: "AQUI",
-  authDomain: "AQUI",
-  projectId: "AQUI"
+  apiKey: "AIzaSyBAx5v07KT6gNgK1k04VEPGiJ_hsoIcX2w",
+  authDomain: "safriapp-2f1db.firebaseapp.com",
+  projectId: "safriapp-2f1db"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
 
-let vendedores = JSON.parse(localStorage.getItem('vendedores')) || ["juan","pedro"];
-let usuarioActual="";
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let uidActual="";
 let tipoActual="";
 
 // LOGIN
 window.login = function(){
-usuarioActual = document.getElementById('usuario').value.toLowerCase();
-tipoActual = document.getElementById('tipo').value;
+let email = document.getElementById('email').value;
+let pass = document.getElementById('password').value;
 
-document.getElementById('login').style.display="none";
-document.getElementById('menu').style.display="block";
-
-if(tipoActual==="vendedor"){
- document.getElementById('btnVendedores').style.display="none";
+auth.signInWithEmailAndPassword(email, pass)
+.then(res=>{
+  uidActual = res.user.uid;
+  cargarDatos(uidActual);
+})
+.catch(err=>alert(err.message));
 }
 
-cargarVendedores();
-mostrarVend();
-ver('dashboard');
+// REGISTRO
+window.registrar = function(){
+let nombre = document.getElementById('nombre').value;
+let email = document.getElementById('emailR').value;
+let pass = document.getElementById('passR').value;
+let tipo = document.getElementById('tipoUser').value;
+
+auth.createUserWithEmailAndPassword(email, pass)
+.then(res=>{
+ db.collection("usuarios").doc(res.user.uid).set({
+   nombre:nombre,
+   correo:email,
+   tipo:tipo
+ });
+ alert("Cuenta creada 🔥");
+ volverLogin();
+})
+.catch(err=>alert(err.message));
 }
 
-// CAMBIAR VISTA
+// CARGAR USUARIO
+function cargarDatos(uid){
+db.collection("usuarios").doc(uid).get().then(doc=>{
+ let data = doc.data();
+ tipoActual = data.tipo;
+
+ document.getElementById('loginBox').style.display="none";
+ document.getElementById('menu').style.display="block";
+
+ ver('dashboard');
+});
+}
+
+// NAVEGACIÓN
 window.ver = function(v){
-["dashboard","scan","stats","vendedores"].forEach(id=>{
+["dashboard","scan","stats"].forEach(id=>{
  document.getElementById(id).style.display="none";
 });
 document.getElementById(v).style.display="block";
@@ -144,188 +158,45 @@ document.getElementById(v).style.display="block";
 if(v==="stats") cargarStats();
 }
 
-// VENDEDORES
-function cargarVendedores(){
-let sel=document.getElementById('vendedor');
-sel.innerHTML="";
-vendedores.forEach(v=>{
- let op=document.createElement('option');
- op.value=v;
- op.text=v;
- sel.appendChild(op);
-});
-}
-
-window.agregarVend = function(){
-let v=document.getElementById('nuevoVend').value;
-if(v){
- vendedores.push(v);
- localStorage.setItem('vendedores',JSON.stringify(vendedores));
- mostrarVend();
-}
-}
-
-function mostrarVend(){
-let lista=document.getElementById('listaVend');
-lista.innerHTML="";
-vendedores.forEach(v=>{
- let li=document.createElement('li');
- li.textContent=v;
- lista.appendChild(li);
-});
-}
-
-// ESCANEAR
-window.scan = function(){
-let file=document.getElementById('img').files[0];
-if(!file) return alert("Sube imagen");
-
-Tesseract.recognize(file,'eng').then(({data:{text}})=>{
- document.getElementById('pins').value=text;
-});
-}
-
 // GUARDAR
-window.guardar = async function(){
-let pins=document.getElementById('pins').value.split('\\n');
-let vend=document.getElementById('vendedor').value;
-let precio=parseInt(document.getElementById('precio').value);
+window.guardar = function(){
+let pins = document.getElementById('pins').value;
 
-for(let p of pins){
- p=p.trim();
- if(p!=""){
-  await addDoc(collection(db,"ventas"),{
-   pin:p,
-   vendedor:vend,
-   precio:precio,
-   fecha:new Date()
-  });
- }
-}
+db.collection("ventas").add({
+ pin:pins,
+ uid:uidActual,
+ fecha:new Date()
+});
 
 alert("Guardado 🔥");
 }
 
 // STATS
-async function cargarStats(){
-const querySnapshot = await getDocs(collection(db,"ventas"));
-
-let total=0;
-let txt="";
-
-querySnapshot.forEach(doc=>{
- let v=doc.data();
-
- if(tipoActual==="admin"){
-  total+=v.precio;
- }
-
- if(tipoActual==="vendedor" && v.vendedor===usuarioActual){
-  total+=v.precio;
- }
+function cargarStats(){
+db.collection("ventas").get().then(snap=>{
+ document.getElementById('statsContent').textContent =
+ "Total ventas: " + snap.size;
 });
-
-txt = "Total: $" + total + "\\n15%: $" + (total*0.15).toFixed(2);
-
-document.getElementById('statsContent').textContent=txt;
 }
 
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBAx5v07KT6gNgK1k04VEPGiJ_hsoIcX2w",
-  authDomain: "safriapp-2f1db.firebaseapp.com",
-  databaseURL: "https://safriapp-2f1db-default-rtdb.firebaseio.com",
-  projectId: "safriapp-2f1db",
-  storageBucket: "safriapp-2f1db.firebasestorage.app",
-  messagingSenderId: "382518465786",
-  appId: "1:382518465786:web:aea230a6847e70bbda2543",
-  measurementId: "G-TTWEFHGG8M"
-};
-db.collection("prueba").add({
-  mensaje: "funciona",
-  fecha: new Date()
-});
-<div id="loginBox">
-<h2>Login</h2>
-<input id="email" placeholder="Correo">
-<input id="password" type="password" placeholder="Contraseña">
-<button onclick="login()">Entrar</button>
-<button onclick="mostrarRegistro()">Crear cuenta</button>
-</div>
-
-<div id="registroBox" style="display:none">
-<h2>Registro</h2>
-<input id="nombre" placeholder="Nombre">
-<input id="emailR" placeholder="Correo">
-<input id="passR" type="password" placeholder="Contraseña">
-
-<select id="tipoUser">
-<option value="vendedor">Vendedor</option>
-<option value="admin">Socio</option>
-</select>
-
-<button onclick="registrar()">Crear cuenta</button>
-<button onclick="volverLogin()">Volver</button>
-</div>
-function login(){
-let email = document.getElementById('email').value;
-let pass = document.getElementById('password').value;
-
-auth.signInWithEmailAndPassword(email, pass)
-.then(user=>{
-  alert("Bienvenido 🔥");
-  cargarDatos(user.user.uid);
-})
-.catch(err=>alert(err.message));
-}
-function registrar(){
-
-let nombre = document.getElementById('nombre').value;
-let email = document.getElementById('emailR').value;
-let pass = document.getElementById('passR').value;
-let tipo = document.getElementById('tipoUser').value;
-
-auth.createUserWithEmailAndPassword(email, pass)
-.then(async (user)=>{
-
- await db.collection("usuarios").doc(user.user.uid).set({
-   nombre: nombre,
-   correo: email,
-   tipo: tipo
- });
-
- alert("Cuenta creada 🔥");
- volverLogin();
-
-})
-.catch(err=>alert(err.message));
-
-}
-function mostrarRegistro(){
- document.getElementById('loginBox').style.display="none";
- document.getElementById('registroBox').style.display="block";
+// LOGOUT
+window.logout = function(){
+auth.signOut();
+location.reload();
 }
 
-function volverLogin(){
- document.getElementById('loginBox').style.display="block";
- document.getElementById('registroBox').style.display="none";
+// VISTAS
+window.mostrarRegistro = function(){
+document.getElementById('loginBox').style.display="none";
+document.getElementById('registroBox').style.display="block";
 }
-function cargarDatos(uid){
 
-db.collection("usuarios").doc(uid).get()
-.then(doc=>{
- let data = doc.data();
-
- if(data.tipo == "admin"){
-   alert("Eres SOCIO 🔥");
- }else{
-   alert("Eres VENDEDOR 💰");
- }
-
- // aquí ya entras a tu sistema
-});
-
+window.volverLogin = function(){
+document.getElementById('loginBox').style.display="block";
+document.getElementById('registroBox').style.display="none";
 }
+
+</script>
+
 </body>
 </html>
