@@ -7,6 +7,9 @@
 </script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
@@ -232,6 +235,7 @@ document.getElementById('statsContent').textContent=txt;
 const firebaseConfig = {
   apiKey: "AIzaSyBAx5v07KT6gNgK1k04VEPGiJ_hsoIcX2w",
   authDomain: "safriapp-2f1db.firebaseapp.com",
+  databaseURL: "https://safriapp-2f1db-default-rtdb.firebaseio.com",
   projectId: "safriapp-2f1db",
   storageBucket: "safriapp-2f1db.firebasestorage.app",
   messagingSenderId: "382518465786",
@@ -242,5 +246,86 @@ db.collection("prueba").add({
   mensaje: "funciona",
   fecha: new Date()
 });
+<div id="loginBox">
+<h2>Login</h2>
+<input id="email" placeholder="Correo">
+<input id="password" type="password" placeholder="Contraseña">
+<button onclick="login()">Entrar</button>
+<button onclick="mostrarRegistro()">Crear cuenta</button>
+</div>
+
+<div id="registroBox" style="display:none">
+<h2>Registro</h2>
+<input id="nombre" placeholder="Nombre">
+<input id="emailR" placeholder="Correo">
+<input id="passR" type="password" placeholder="Contraseña">
+
+<select id="tipoUser">
+<option value="vendedor">Vendedor</option>
+<option value="admin">Socio</option>
+</select>
+
+<button onclick="registrar()">Crear cuenta</button>
+<button onclick="volverLogin()">Volver</button>
+</div>
+function login(){
+let email = document.getElementById('email').value;
+let pass = document.getElementById('password').value;
+
+auth.signInWithEmailAndPassword(email, pass)
+.then(user=>{
+  alert("Bienvenido 🔥");
+  cargarDatos(user.user.uid);
+})
+.catch(err=>alert(err.message));
+}
+function registrar(){
+
+let nombre = document.getElementById('nombre').value;
+let email = document.getElementById('emailR').value;
+let pass = document.getElementById('passR').value;
+let tipo = document.getElementById('tipoUser').value;
+
+auth.createUserWithEmailAndPassword(email, pass)
+.then(async (user)=>{
+
+ await db.collection("usuarios").doc(user.user.uid).set({
+   nombre: nombre,
+   correo: email,
+   tipo: tipo
+ });
+
+ alert("Cuenta creada 🔥");
+ volverLogin();
+
+})
+.catch(err=>alert(err.message));
+
+}
+function mostrarRegistro(){
+ document.getElementById('loginBox').style.display="none";
+ document.getElementById('registroBox').style.display="block";
+}
+
+function volverLogin(){
+ document.getElementById('loginBox').style.display="block";
+ document.getElementById('registroBox').style.display="none";
+}
+function cargarDatos(uid){
+
+db.collection("usuarios").doc(uid).get()
+.then(doc=>{
+ let data = doc.data();
+
+ if(data.tipo == "admin"){
+   alert("Eres SOCIO 🔥");
+ }else{
+   alert("Eres VENDEDOR 💰");
+ }
+
+ // aquí ya entras a tu sistema
+});
+
+}
 </body>
 </html>
