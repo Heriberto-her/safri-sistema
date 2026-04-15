@@ -3,285 +3,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAFRI Sistema</title>
+<title>SAFRI PRO</title>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
-body{
-    font-family: Arial;
-    background:#0f172a;
-    color:white;
-    margin:0;
-}
-
-header{
-    background:#020617;
-    padding:15px;
-    text-align:center;
-    font-size:22px;
-}
-
-.container{
-    padding:20px;
-    max-width:1000px;
-    margin:auto;
-}
-
-.card{
-    background:#1e293b;
-    padding:20px;
-    border-radius:12px;
-    margin-bottom:20px;
-}
-
-input, textarea, select{
-    width:100%;
-    padding:10px;
-    border-radius:8px;
-    border:none;
-    margin-top:10px;
-}
-
-button{
-    background:#22c55e;
-    border:none;
-    padding:10px;
-    color:white;
-    border-radius:8px;
-    cursor:pointer;
-    margin-top:10px;
-}
-
-pre{
-    background:#020617;
-    padding:10px;
-    border-radius:8px;
-}
-
+body{font-family:Arial;background:#0f172a;color:white;margin:0}
+header{background:#020617;padding:15px;text-align:center}
+.container{padding:20px;max-width:900px;margin:auto}
+.card{background:#1e293b;padding:20px;border-radius:10px;margin-bottom:20px}
+input,select,textarea{width:100%;padding:10px;margin-top:10px;border-radius:8px;border:none}
+button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px;margin-top:10px}
 </style>
 </head>
 
 <body>
 
-<header>SAFRI SISTEMA 🔥</header>
+<header>SAFRI 🔥</header>
 
-<!-- LOGIN -->
 <div class="container" id="login">
 <div class="card">
-<h2>🔐 Login</h2>
-
+<h2>Login</h2>
 <select id="tipo">
 <option value="admin">Socio</option>
 <option value="vendedor">Vendedor</option>
 </select>
-
-<input id="usuario" placeholder="Nombre">
-
-<button onclick="entrar()">Entrar</button>
+<input id="usuario" placeholder="Usuario">
+<button onclick="login()">Entrar</button>
 </div>
 </div>
 
-<!-- SISTEMA -->
-<div class="container" id="sistema" style="display:none">
-
+<div class="container" id="app" style="display:none">
 <div class="card">
-<h2>📸 Escanear Fichas</h2>
-
-<input type="file" id="imagen">
-
-<select id="vendedorSelect"></select>
-
+<h2>Escanear</h2>
+<input type="file" id="img">
+<select id="vendedor"></select>
 <select id="precio">
 <option value="10">$10</option>
 <option value="25">$25</option>
 </select>
-
 <button onclick="scan()">Escanear</button>
-
 <textarea id="pins"></textarea>
-
-<button onclick="registrar()">Registrar</button>
+<button onclick="guardar()">Guardar</button>
 </div>
 
 <div class="card">
-<h2>📊 Estadísticas</h2>
+<h2>Stats</h2>
 <pre id="stats"></pre>
 </div>
-
 </div>
 
-<script>
+<script type="module">
 
-let vendedores = JSON.parse(localStorage.getItem('vendedores')) || ["juan","pedro"];
-let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
+// 🔥 IMPORTS FIREBASE NUEVO
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// 🔥 TU CONFIG AQUÍ
+const firebaseConfig = {
+  apiKey: "AQUI_TU_API",
+  authDomain: "AQUI",
+  projectId: "AQUI"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// DATOS
+let vendedores = ["juan","pedro"];
 let usuarioActual = "";
 let tipoActual = "";
 
 // LOGIN
-function entrar(){
-    usuarioActual = document.getElementById('usuario').value.toLowerCase();
-    tipoActual = document.getElementById('tipo').value;
+window.login = function(){
+  usuarioActual = document.getElementById('usuario').value;
+  tipoActual = document.getElementById('tipo').value;
 
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('sistema').style.display = 'block';
+  document.getElementById('login').style.display="none";
+  document.getElementById('app').style.display="block";
 
-    cargarVendedores();
-    mostrarStats();
+  cargarVendedores();
+  cargarStats();
 }
 
 // CARGAR VENDEDORES
 function cargarVendedores(){
-    let sel = document.getElementById('vendedorSelect');
-    sel.innerHTML = "";
-
-    vendedores.forEach(v=>{
-        let op = document.createElement('option');
-        op.value = v;
-        op.text = v;
-        sel.appendChild(op);
-    });
+  let sel = document.getElementById('vendedor');
+  sel.innerHTML="";
+  vendedores.forEach(v=>{
+    let op = document.createElement('option');
+    op.value=v;
+    op.text=v;
+    sel.appendChild(op);
+  });
 }
 
-// ESCANEAR IMAGEN
-function scan(){
-    let file = document.getElementById('imagen').files[0];
+// ESCANEAR
+window.scan = function(){
+  let file = document.getElementById('img').files[0];
+  if(!file) return alert("Sube imagen");
 
-    if(!file){
-        alert("Selecciona una imagen");
-        return;
-    }
-
-    Tesseract.recognize(file,'eng').then(({data:{text}})=>{
-        document.getElementById('pins').value = text;
-    });
+  Tesseract.recognize(file,'eng').then(({data:{text}})=>{
+    document.getElementById('pins').value=text;
+  });
 }
 
-// REGISTRAR VENTAS (SIN DUPLICADOS)
-function registrar(){
+// GUARDAR EN FIREBASE
+window.guardar = async function(){
+  let pins = document.getElementById('pins').value.split('\\n');
+  let vend = document.getElementById('vendedor').value;
+  let precio = parseInt(document.getElementById('precio').value);
 
-let pins = document.getElementById('pins').value.split('\n');
-let vend = document.getElementById('vendedorSelect').value;
-let precio = parseInt(document.getElementById('precio').value);
-
-pins.forEach(p=>{
+  for(let p of pins){
     p = p.trim();
-
     if(p !== ""){
-
-        let existe = ventas.find(v => v.pin === p);
-
-        if(!existe){
-            ventas.push({
-                pin: p,
-                vendedor: vend,
-                precio: precio,
-                fecha: new Date().toLocaleString()
-            });
-        }
-
+      await addDoc(collection(db, "ventas"), {
+        pin:p,
+        vendedor:vend,
+        precio:precio,
+        fecha:new Date()
+      });
     }
-});
+  }
 
-localStorage.setItem('ventas', JSON.stringify(ventas));
-
-mostrarStats();
-alert("Registrado sin duplicados");
+  alert("Guardado en la nube 🔥");
+  cargarStats();
 }
 
-// ESTADÍSTICAS
-function mostrarStats(){
+// STATS DESDE FIREBASE
+async function cargarStats(){
 
-let total10 = 0;
-let total25 = 0;
-let porVendedor = {};
+  const querySnapshot = await getDocs(collection(db, "ventas"));
 
-ventas.forEach(v=>{
-    if(v.precio == 10) total10++;
-    if(v.precio == 25) total25++;
+  let total=0;
+  let txt="";
 
-    if(!porVendedor[v.vendedor]){
-        porVendedor[v.vendedor] = { total:0 };
+  querySnapshot.forEach(doc=>{
+    let v = doc.data();
+    if(tipoActual=="admin"){
+      total += v.precio;
     }
-
-    porVendedor[v.vendedor].total += v.precio;
-});
-
-let txt = "";
-
-// SOCIO
-if(tipoActual == "admin"){
-
-txt += "Fichas $10: " + total10 + "\n";
-txt += "Fichas $25: " + total25 + "\n\n";
-
-for(let v in porVendedor){
-
-    let total = porVendedor[v].total;
-    let ganancia = total * 0.15;
-
-    txt += v + ":\n";
-    txt += "Total: $" + total + "\n";
-    txt += "15%: $" + ganancia.toFixed(2) + "\n\n";
-}
-
-}
-
-// VENDEDOR
-if(tipoActual == "vendedor"){
-
-let total = 0;
-let f10 = 0;
-let f25 = 0;
-
-ventas.forEach(v=>{
-    if(v.vendedor == usuarioActual){
-        total += v.precio;
-        if(v.precio == 10) f10++;
-        if(v.precio == 25) f25++;
+    if(tipoActual=="vendedor" && v.vendedor==usuarioActual){
+      total += v.precio;
     }
-});
+  });
 
-let ganancia = total * 0.15;
+  txt = "Total: $" + total + "\\n15%: $" + (total*0.15);
 
-txt += "Tus fichas $10: " + f10 + "\n";
-txt += "Tus fichas $25: " + f25 + "\n\n";
-txt += "Total vendido: $" + total + "\n";
-txt += "Tu 15%: $" + ganancia.toFixed(2);
-
+  document.getElementById('stats').textContent = txt;
 }
 
-document.getElementById('stats').textContent = txt;
-
-}
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBAx5v07KT6gNgK1k04VEPGiJ_hsoIcX2w",
-    authDomain: "safriapp-2f1db.firebaseapp.com",
-    projectId: "safriapp-2f1db",
-    storageBucket: "safriapp-2f1db.firebasestorage.app",
-    messagingSenderId: "382518465786",
-    appId: "1:382518465786:web:aea230a6847e70bbda2543",
-    measurementId: "G-TTWEFHGG8M"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
 </script>
-</script>
+
 </body>
 </html>
