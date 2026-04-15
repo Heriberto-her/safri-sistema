@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>SAFRI PRO 🔥</title>
 
-<!-- FIREBASE V8 (ESTABLE PARA GITHUB) -->
+<link rel="manifest" href="manifest.json">
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
@@ -28,7 +29,6 @@ button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px
 
 <header>SAFRI 🔥</header>
 
-<!-- LOGIN -->
 <div class="container" id="loginBox">
 <div class="card">
 <h2>Login</h2>
@@ -39,7 +39,6 @@ button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px
 </div>
 </div>
 
-<!-- REGISTRO -->
 <div class="container" id="registroBox" style="display:none">
 <div class="card">
 <h2>Registro</h2>
@@ -55,43 +54,60 @@ button{background:#22c55e;border:none;padding:10px;color:white;border-radius:8px
 </div>
 </div>
 
-<!-- MENU -->
 <div id="menu" class="menu" style="display:none">
-<button onclick="ver('dashboard')">🏠 Inicio</button>
-<button onclick="ver('scan')">📸 Escanear</button>
-<button onclick="ver('stats')">📊 Stats</button>
+<button onclick="ver('dashboard')">Inicio</button>
+<button onclick="ver('scan')">Escanear</button>
+<button onclick="ver('stats')">Stats</button>
 <button onclick="logout()">Salir</button>
 </div>
 
-<!-- DASHBOARD -->
 <div class="container" id="dashboard" style="display:none">
 <div class="card"><h2>Bienvenido 🔥</h2></div>
 </div>
 
-<!-- ESCANEAR -->
 <div class="container" id="scan" style="display:none">
 <div class="card">
-<h2>Escanear</h2>
-<input id="pins" placeholder="Pega PINs">
-<button onclick="guardar()">Guardar</button>
+<h2>Escanear fichas</h2>
+
+<input type="file" id="img">
+
+<select id="vendedorSelect"></select>
+
+<select id="precio">
+<option value="10">$10</option>
+<option value="25">$25</option>
+</select>
+
+<button onclick="scan()">Escanear</button>
+
+<textarea id="pins"></textarea>
+
+<button onclick="generarScript()">Generar Script</button>
+<pre id="script"></pre>
+
+<button onclick="guardar()">Guardar fichas</button>
 </div>
 </div>
 
-<!-- STATS -->
 <div class="container" id="stats" style="display:none">
 <div class="card">
-<h2>Estadísticas</h2>
+<h2>Estadísticas (Corte día 20)</h2>
 <pre id="statsContent"></pre>
 </div>
 </div>
 
 <script>
 
-// 🔥 CONFIG (TUYA)
+// SERVICE WORKER
+if('serviceWorker' in navigator){
+ navigator.serviceWorker.register('sw.js');
+}
+
+// FIREBASE
 const firebaseConfig = {
-  apiKey: "AIzaSyBAx5v07KT6gNgK1k04VEPGiJ_hsoIcX2w",
-  authDomain: "safriapp-2f1db.firebaseapp.com",
-  projectId: "safriapp-2f1db"
+ apiKey: "AIzaSyBAx5v07KT6gNgK1k04VEPGiJ_hsoIcX2w",
+ authDomain: "safriapp-2f1db.firebaseapp.com",
+ projectId: "safriapp-2f1db"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -101,6 +117,7 @@ const db = firebase.firestore();
 
 let uidActual="";
 let tipoActual="";
+let usuarioNombre="";
 
 // LOGIN
 window.login = function(){
@@ -109,8 +126,8 @@ let pass = document.getElementById('password').value;
 
 auth.signInWithEmailAndPassword(email, pass)
 .then(res=>{
-  uidActual = res.user.uid;
-  cargarDatos(uidActual);
+ uidActual = res.user.uid;
+ cargarDatos(uidActual);
 })
 .catch(err=>alert(err.message));
 }
@@ -140,10 +157,12 @@ function cargarDatos(uid){
 db.collection("usuarios").doc(uid).get().then(doc=>{
  let data = doc.data();
  tipoActual = data.tipo;
+ usuarioNombre = data.nombre;
 
  document.getElementById('loginBox').style.display="none";
  document.getElementById('menu').style.display="block";
 
+ cargarVendedores();
  ver('dashboard');
 });
 }
@@ -158,25 +177,104 @@ document.getElementById(v).style.display="block";
 if(v==="stats") cargarStats();
 }
 
-// GUARDAR
-window.guardar = function(){
-let pins = document.getElementById('pins').value;
-
-db.collection("ventas").add({
- pin:pins,
- uid:uidActual,
- fecha:new Date()
+// VENDEDORES
+function cargarVendedores(){
+db.collection("usuarios").where("tipo","==","vendedor").get().then(snap=>{
+ let sel = document.getElementById('vendedorSelect');
+ sel.innerHTML="";
+ snap.forEach(doc=>{
+  let v = doc.data();
+  let op = document.createElement('option');
+  op.value = v.nombre;
+  op.text = v.nombre;
+  sel.appendChild(op);
+ });
 });
-
-alert("Guardado 🔥");
 }
 
-// STATS
-function cargarStats(){
-db.collection("ventas").get().then(snap=>{
- document.getElementById('statsContent').textContent =
- "Total ventas: " + snap.size;
+// OCR
+window.scan = function(){
+let file = document.getElementById('img').files[0];
+if(!file) return alert("Sube imagen");
+
+Tesseract.recognize(file,'eng').then(({data:{text}})=>{
+ document.getElementById('pins').value = text;
 });
+}
+
+// SCRIPT
+window.generarScript = function(){
+let pins = document.getElementById('pins').value.split('\n');
+let script = "";
+
+pins.forEach(p=>{
+ p = p.trim();
+ if(p!=""){
+  script += `/ip hotspot user add name=${p} password="" profile=default\n`;
+ }
+});
+
+document.getElementById('script').textContent = script;
+}
+
+// GUARDAR
+window.guardar = function(){
+let pins = document.getElementById('pins').value.split('\n');
+let vendedor = document.getElementById('vendedorSelect').value || usuarioNombre;
+let precio = parseInt(document.getElementById('precio').value);
+
+pins.forEach(p=>{
+ p = p.trim();
+ if(p!=""){
+  db.collection("fichas").add({
+   pin:p,
+   vendedor:vendedor,
+   precio:precio,
+   fecha:new Date()
+  });
+ }
+});
+
+alert("Fichas guardadas 🔥");
+}
+
+// CORTE DÍA 20
+function cargarStats(){
+
+let hoy = new Date();
+let inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 20);
+let fin = new Date(hoy.getFullYear(), hoy.getMonth()+1, 20);
+
+db.collection("fichas").get().then(snap=>{
+
+ let data = {};
+
+ snap.forEach(doc=>{
+  let v = doc.data();
+  let fecha = v.fecha.toDate();
+
+  if(fecha >= inicio && fecha < fin){
+
+   if(tipoActual==="vendedor" && v.vendedor !== usuarioNombre) return;
+
+   if(!data[v.vendedor]) data[v.vendedor]=0;
+   data[v.vendedor]+=v.precio;
+  }
+ });
+
+ let txt="";
+
+ for(let v in data){
+  let total = data[v];
+  let ganancia = total * 0.15;
+
+  txt += v + "\nTotal: $" + total + "\n15%: $" + ganancia.toFixed(2) + "\n\n";
+ }
+
+ document.getElementById('statsContent').textContent = txt;
+
+});
+
 }
 
 // LOGOUT
