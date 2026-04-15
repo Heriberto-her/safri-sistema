@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAFRI SISTEMA PRO</title>
+</script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
@@ -224,7 +227,20 @@ txt = "Total: $" + total + "\\n15%: $" + (total*0.15).toFixed(2);
 document.getElementById('statsContent').textContent=txt;
 }
 
-</script>
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBAx5v07KT6gNgK1k04VEPGiJ_hsoIcX2w",
+  authDomain: "safriapp-2f1db.firebaseapp.com",
+  projectId: "safriapp-2f1db",
+  storageBucket: "safriapp-2f1db.firebasestorage.app",
+  messagingSenderId: "382518465786",
+  appId: "1:382518465786:web:aea230a6847e70bbda2543",
+  measurementId: "G-TTWEFHGG8M"
+};
+db.collection("prueba").add({
+  mensaje: "funciona",
+  fecha: new Date()
+});
 </body>
 </html>
